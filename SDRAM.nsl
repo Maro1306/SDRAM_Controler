@@ -1,0 +1,295 @@
+#include "SDRAM.inc"
+
+#define tRP 		5'd2	// PREからACT
+#define tRC 		5'd8	// REFからREF
+#define tRCD		5'd2	// ACTからRWコマンド
+#define tRAS		5'd5 	// ACTからPRE
+#define tDAL		5'd4 	// WTからPRE終了
+#define tCAC		5'd2	// CASレーテンシ
+
+#define REF_CYC		9'd511	// リフレッシュサイクル
+#define OUT_CNT 	2'd2
+
+#define REF 		5'd0
+#define ENDREF		REF+tRC-1
+
+#define R_ACT		5'd0
+#define READ 		R_ACT+tRCD
+#define R_ENDPRE	READ+tRAS-1
+#define R_OUT		READ+tCAC
+
+#define W_ACT		5'd0
+#define WRITE 		W_ACT+tRCD
+#define W_ENDPRE	WRITE+tDAL-1
+
+module SDRAM{
+	reg cnt[5] = 0;
+	reg iref_cnt[3] = 1;
+	reg ref_cnt[9] = 0;
+	reg out_cnt[2] = 0;
+
+	reg rdqm = 1;
+	reg udqm = 1;
+
+	reg ref_req = 0;	// リフレッシュリクエスト
+	reg rd_req = 0;		// READリクエスト
+	reg wt_req = 0;		// WRITEリクエスト
+
+	reg bank[2];
+	reg row[13];
+	reg column[10];
+	reg data[16];
+	reg wtflag = 0;
+
+	proc_name init();
+	proc_name idle();
+	proc_name refresh();
+	proc_name read();
+	proc_name write();
+
+	func_self cmd_nop;	// 何もしない
+	func_self cmd_pall;	// 全バンクプリチャージ
+	func_self cmd_ref;	// オートリフレッシュ
+	func_self cmd_mrs;	// モードレジスタ設定
+	func_self cmd_act;	// バンクとROWをアクティブ
+	func_self cmd_rda;	// AP付READ
+	func_self cmd_wta;	// AP付WRITE
+
+	DRAM_CLK = m_clock;	// 133MHz
+	DRAM_CKE = 1;		// 常にHIGH
+	DRAM_LDQM = rdqm;	// 初期化中のみHIGH
+	DRAM_UDQM = udqm;	// 初期化中のみHIGH
+	wtf = wtflag;		// 書込みフラグ
+
+	if(p_reset){
+		init();
+	}
+
+	// SDRAM初期化
+	proc init{
+		state_name init_wait, init_pall, init_ref, init_mrs;
+
+		state init_wait{
+			cmd_nop();
+
+			if(cnt == 30){
+				cnt := 1;
+				goto init_pall;
+			}
+			else cnt++;
+		}
+
+		state init_pall{
+			if(cnt == 1) cmd_pall();
+			else cmd_nop();
+
+			if(cnt == tRP){
+				cnt := 1;
+				goto init_ref;
+			}
+			else cnt++;
+		}
+
+		state init_ref{
+			if(cnt == 1) cmd_ref();
+			else cmd_nop();
+
+			if(cnt == tRC){
+				cnt := 1;
+				if(iref_cnt == 8){
+					iref_cnt := 1;
+					goto init_mrs;
+				}
+				else{
+					iref_cnt++;
+					goto init_ref;
+				}
+			}
+			else cnt++;
+		}
+
+		state init_mrs{
+			cmd_mrs();
+
+			// DQMをLOWにする
+			rdqm := 0;
+			udqm := 0;
+
+			ref_cnt := REF_CYC;
+			cnt := 0;
+			idle();
+		}
+	}
+
+	proc idle{
+		cmd_nop();
+
+		alt{
+			// リフレッシュ最優先
+			ref_req:{
+				refresh();
+				ref_req := 0;
+			}
+			rd_req|rd:{
+				read();
+				rd_req := 0;
+			}
+			wt_req|wt:{
+				write();
+				wt_req := 0;
+				wtflag := 1;
+			}
+		}
+	}
+
+	// REF_CYCクロック毎にオートリフレッシュ
+	proc refresh{
+		alt{
+			cnt == REF:		cmd_ref();
+			cnt <= ENDREF:	cmd_nop();
+		}
+
+		if(cnt == ENDREF){
+			cnt := 0;
+			ref_cnt := REF_CYC;
+			idle();
+		}
+		else cnt++;
+	}
+
+	// リフレッシュカウンタ
+	// (REF_CYC+1)クロック目にリフレッシュリクエストを送る
+	if(ref_cnt != 0){
+		if(ref_cnt == 1) ref_req := 1;
+		ref_cnt--;
+	}
+
+	proc read{
+		alt{
+			cnt == R_ACT:		cmd_act();
+			cnt < READ:			cmd_nop();
+			cnt == READ:		cmd_rda();
+			cnt <= R_ENDPRE:	cmd_nop();
+		}
+
+		if(cnt == R_OUT){
+			data := DRAM_DI;
+			datao = DRAM_DI;
+			done = 1;
+			out_cnt := OUT_CNT;
+		}
+
+		if(cnt == R_ENDPRE){
+			cnt := 0;
+			idle();
+		}
+		else cnt++;
+	}
+
+	// 呼び出し元がデータをラッチするまで出力
+	if(out_cnt != 0){
+		datao = data;
+		done = 1;
+		out_cnt--;
+	}
+
+	proc write{
+		alt{
+			cnt == W_ACT:		cmd_act();
+			cnt < WRITE:		cmd_nop();
+			cnt == WRITE:		cmd_wta();
+			cnt <= W_ENDPRE:	cmd_nop();
+		}
+
+		if(cnt == W_ENDPRE){
+			cnt := 0;
+			wtflag := 0;
+			idle();
+		}
+		else cnt++;
+	}
+
+	func cmd_nop{
+		DRAM_CS = 0;
+		DRAM_RAS = 1;
+		DRAM_CAS = 1;
+		DRAM_WE = 1;
+	}
+
+	func cmd_pall{
+		DRAM_CS = 0;
+		DRAM_RAS = 0;
+		DRAM_CAS = 1;
+		DRAM_WE = 0;
+
+		DRAM_A = 13'b0010000000000;	// A[10]をHIGH
+	}
+
+	func cmd_ref{
+		DRAM_CS = 0;
+		DRAM_RAS = 0;
+		DRAM_CAS = 0;
+		DRAM_WE = 1;
+	}
+
+	func cmd_mrs{
+		DRAM_CS = 0;
+		DRAM_RAS = 0;
+		DRAM_CAS = 0;
+		DRAM_WE = 0;
+
+		DRAM_BA = 2'b00;
+
+		// A12-7	オプション = 全部LOW
+		// A6-4		CASレーテンシ = 2
+		// A3		ラップタイプ = シーケンシャル
+		// A2-0		バースト長 = 1
+		DRAM_A = 13'b0000000100000;
+	}
+
+	func cmd_act{
+		DRAM_CS = 0;
+		DRAM_RAS = 0;
+		DRAM_CAS = 1;
+		DRAM_WE = 1;
+
+		DRAM_BA = bank;
+		DRAM_A = row;
+	}
+
+	func cmd_rda{
+		DRAM_CS = 0;
+		DRAM_RAS = 1;
+		DRAM_CAS = 0;
+		DRAM_WE = 1;
+
+		DRAM_BA = bank;
+		DRAM_A = {2'b00, 1'b1, column};
+	}
+
+	func cmd_wta{
+		DRAM_CS = 0;
+		DRAM_RAS = 1;
+		DRAM_CAS = 0;
+		DRAM_WE = 0;
+
+		DRAM_BA = bank;
+		DRAM_A = {2'b00, 1'b1, column};
+		DRAM_DO = data;
+	}
+
+	func rd{
+		rd_req := 1;
+		bank := banki;
+		row := rowi;
+		column := columni;
+	}
+
+	func wt{
+		wt_req := 1;
+		bank := banki;
+		row := rowi;
+		column := columni;
+		data := datai;
+	}
+}

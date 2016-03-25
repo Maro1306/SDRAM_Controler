@@ -1,0 +1,65 @@
+#include "SDRAM.inc"
+#include "sdr.inc"
+
+#define DEBUG
+
+declare DE0_CV{
+#ifndef DEBUG
+	inout	DRAM_D[16];
+	output	DRAM_A[13];
+	output	DRAM_BA[2];
+	output 	DRAM_LDQM;
+	output 	DRAM_UDQM;
+	output 	DRAM_RAS;
+	output 	DRAM_CAS;
+	output 	DRAM_CKE;
+	output 	DRAM_CLK;
+	output 	DRAM_WE;
+	output 	DRAM_CS;
+#endif
+}
+
+module DE0_CV{
+	SDRAM sdram;
+	sdr sdrsim;
+
+#ifndef DEBUG
+	if(sdram.wtf) DRAM_D = sdram.DRAM_DO;
+	else{
+		DRAM_D = 16'hZZZZ;
+		sdram.DRAM_DI = DRAM_D;
+	}
+
+	DRAM_A = sdram.DRAM_A;
+	DRAM_BA = sdram.DRAM_BA;
+	DRAM_LDQM = sdram.DRAM_LDQM;
+	DRAM_UDQM = sdram.DRAM_UDQM;
+	DRAM_RAS = sdram.DRAM_RAS;
+	DRAM_CAS = sdram.DRAM_CAS;
+	DRAM_CKE = sdram.DRAM_CKE;
+	DRAM_CLK = sdram.DRAM_CLK;
+	DRAM_WE = sdram.DRAM_WE;
+	DRAM_CS = sdram.DRAM_CS;
+#endif
+
+#ifdef DEBUG
+	if(sdram.wtf) sdrsim.Dq = sdram.DRAM_DO;
+	else{
+		sdrsim.Dq = 16'hZZZZ;
+		sdram.DRAM_DI = sdrsim.Dq;
+	}
+
+	sdrsim.m_clock = sdram.DRAM_CLK;
+	sdrsim.p_reset = p_reset;
+
+	sdrsim.Addr = sdram.DRAM_A;
+	sdrsim.Ba = sdram.DRAM_BA;
+	sdrsim.Dqm = {sdram.DRAM_UDQM, sdram.DRAM_LDQM};
+	sdrsim.Ras_n = sdram.DRAM_RAS;
+	sdrsim.Cas_n = sdram.DRAM_CAS;
+	sdrsim.Cke = sdram.DRAM_CKE;
+	sdrsim.Clk = sdram.DRAM_CLK;
+	sdrsim.We_n = sdram.DRAM_WE;
+	sdrsim.Cs_n = sdram.DRAM_CS;
+#endif
+}
