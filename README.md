@@ -29,3 +29,9 @@ A7-A12(オプション)     なし(000000)
 
 ![init](https://github.com/Maro1306/sdram_ctr/blob/master/initialize.png?raw=true)
 
+### 読込み処理
+
+AP付READコマンドを使用しているためプリチャージは自動で行われる
+
+![read](https://github.com/Maro1306/sdram_ctr/blob/master/read.png?raw=true)
+
