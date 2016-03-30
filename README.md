@@ -1,6 +1,7 @@
 ## SDRAMコントローラ
 
-DE0-CVのSDRAMコントローラをつくる
+DE0-CVのSDRAMコントローラをつくる  
+タイミングチャート作成には[タイミングチャート清書サービス](http://dora.bk.tsukuba.ac.jp/~takeuchi/?%E3%82%BD%E3%83%95%E3%83%88%E3%82%A6%E3%82%A7%E3%82%A2%2F%E3%82%BF%E3%82%A4%E3%83%9F%E3%83%B3%E3%82%B0%E3%83%81%E3%83%A3%E3%83%BC%E3%83%88%E6%B8%85%E6%9B%B8%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9)を使用しました
 
 ### DE0-CVのSDRAM
 
@@ -35,14 +36,16 @@ A7-A12(オプション)     なし(000000)
 
 ### 読込み処理
 
-AP付READコマンドを使用しているためプリチャージは自動で行われる
+AP付READコマンドを使用しているためプリチャージは自動で行われる  
+処理開始からアイドル状態に戻るまで **8クロック**
 
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/read.png?raw=true">
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/timing-read.png?raw=true">
 
 ### 書込み処理
 
-AP付WRITEコマンドを使用しているためプリチャージは自動で行われる
+AP付WRITEコマンドを使用しているためプリチャージは自動で行われる  
+処理開始からアイドル状態に戻るまで **8クロック**
 
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/write.png?raw=true">
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/timing-write.png?raw=true">
