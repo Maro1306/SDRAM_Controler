@@ -37,13 +37,15 @@ A7-A12(オプション)     なし(000000)
 
 AP付READコマンドを使用しているためプリチャージは自動で行われる
 
-![read](https://github.com/Maro1306/sdram_ctr/blob/master/read.png?raw=true)
+<img src="https://github.com/Maro1306/sdram_ctr/blob/master/read.png?raw=true">
+<img src="https://github.com/Maro1306/sdram_ctr/blob/master/timing-read.png?raw=true">
 
 ### 書込み処理
 
 AP付WRITEコマンドを使用しているためプリチャージは自動で行われる
 
-![write](https://github.com/Maro1306/sdram_ctr/blob/master/write.png?raw=true)
+<img src="https://github.com/Maro1306/sdram_ctr/blob/master/write.png?raw=true">
+<img src="https://github.com/Maro1306/sdram_ctr/blob/master/timing-write.png?raw=true">
 
 ### リフレッシュ処理
 
