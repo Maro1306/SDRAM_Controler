@@ -6,14 +6,18 @@ DE0-CVのSDRAMコントローラをつくる
 
 ```
 型番      IS42S16320D
-容量      64MB=512Mb(32M\*16)
+容量      64MB=512Mb(32M*16)
 データ幅  16bit
-ROW       8K(A0A12)
-COLUMN    1K(A0A9)
+ROW       8K(A0-A12)
+COLUMN    1K(A0-A9)
 バンク数  4
 REF間隔   64ms以内に8K(8192)回
 周波数    133MHz(1クロック7.5ns)
 ```
+
+### 状態遷移
+
+![state](https://github.com/Maro1306/sdram_ctr/blob/master/statement.png?raw=true)
 
 ### 初期化処理
 
@@ -40,4 +44,6 @@ AP付READコマンドを使用しているためプリチャージは自動で�
 AP付WRITEコマンドを使用しているためプリチャージは自動で行われる
 
 ![write](https://github.com/Maro1306/sdram_ctr/blob/master/write.png?raw=true)
+
+### リフレッシュ処理
 
