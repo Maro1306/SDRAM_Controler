@@ -1,11 +1,23 @@
 #include "SDRAM.inc"
 
-#define tRP 		5'd2	// PREからACT
-#define tRC 		5'd8	// REFからREF
-#define tRCD		5'd2	// ACTからRWコマンド
-#define tRAS		5'd5 	// ACTからPRE
-#define tDAL		5'd4 	// WTからPRE終了
-#define tCAC		5'd2	// CASレーテンシ
+#define tRP 		8'd2	// PREからACT
+#define tRC 		8'd8	// REFからREF
+#define tRCD		8'd2	// ACTからRWコマンド
+#define tRAS		8'd5 	// ACTからPRE
+#define tDAL		8'd4 	// WTからPRE終了
+#define tCAC		8'd2	// CASレーテンシ
+
+#define INIT_WAIT	8'd30
+#define INIT_PALL	INIT_WAIT+8'd1
+#define INIT_REF1	INIT_PALL+tRP
+#define INIT_REF2	INIT_REF1+tRC
+#define INIT_REF3	INIT_REF2+tRC
+#define INIT_REF4	INIT_REF3+tRC
+#define INIT_REF5	INIT_REF4+tRC
+#define INIT_REF6	INIT_REF5+tRC
+#define INIT_REF7	INIT_REF6+tRC
+#define INIT_REF8	INIT_REF7+tRC
+#define INIT_MRS	INIT_REF8+tRC
 
 #define REF_CYC		9'd511	// リフレッシュサイクル
 #define OUT_CNT 	2'd2
@@ -23,7 +35,7 @@
 #define W_ENDPRE	WRITE+tDAL-1
 
 module SDRAM{
-	reg cnt[5] = 0;
+	reg cnt[8] = 0;
 	reg iref_cnt[3] = 1;
 	reg ref_cnt[9] = 0;
 	reg out_cnt[2] = 0;
@@ -66,59 +78,29 @@ module SDRAM{
 	}
 
 	// SDRAM初期化
-	proc init{
-		state_name init_wait, init_pall, init_ref, init_mrs;
+	proc init alt{
+		cnt <= INIT_WAIT: cmd_nop();
+		cnt == INIT_PALL: cmd_pall();
+		cnt <  INIT_REF1: cmd_nop();
+		
+		cnt == INIT_REF1: cmd_ref();
+		cnt <  INIT_REF2: cmd_nop();
+		cnt == INIT_REF2: cmd_ref();
+		cnt <  INIT_REF3: cmd_nop();
+		cnt == INIT_REF3: cmd_ref();
+		cnt <  INIT_REF4: cmd_nop();
+		cnt == INIT_REF4: cmd_ref();
+		cnt <  INIT_REF5: cmd_nop();
+		cnt == INIT_REF5: cmd_ref();
+		cnt <  INIT_REF6: cmd_nop();
+		cnt == INIT_REF6: cmd_ref();
+		cnt <  INIT_REF7: cmd_nop();
+		cnt == INIT_REF7: cmd_ref();
+		cnt <  INIT_REF8: cmd_nop();
+		cnt == INIT_REF8: cmd_ref();
+		cnt <  INIT_MRS : cmd_nop();
 
-		state init_wait{
-			cmd_nop();
-
-			if(cnt == 30){
-				cnt := 1;
-				goto init_pall;
-			}
-			else cnt++;
-		}
-
-		state init_pall{
-			if(cnt == 1) cmd_pall();
-			else cmd_nop();
-
-			if(cnt == tRP){
-				cnt := 1;
-				goto init_ref;
-			}
-			else cnt++;
-		}
-
-		state init_ref{
-			if(cnt == 1) cmd_ref();
-			else cmd_nop();
-
-			if(cnt == tRC){
-				cnt := 1;
-				if(iref_cnt == 8){
-					iref_cnt := 1;
-					goto init_mrs;
-				}
-				else{
-					iref_cnt++;
-					goto init_ref;
-				}
-			}
-			else cnt++;
-		}
-
-		state init_mrs{
-			cmd_mrs();
-
-			// DQMをLOWにする
-			rdqm := 0;
-			udqm := 0;
-
-			ref_cnt := REF_CYC;
-			cnt := 0;
-			idle();
-		}
+		cnt == INIT_MRS : cmd_mrs();
 	}
 
 	proc idle{
