@@ -45,7 +45,7 @@ AP付READコマンドを使用しているためプリチャージは自動で�
 ### 書込み処理
 
 AP付WRITEコマンドを使用しているためプリチャージは自動で行われる  
-処理開始からアイドル状態に戻るまで **8クロック**
+処理開始からアイドル状態に戻るまで **7クロック**
 
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/write.png?raw=true">
 <img src="https://github.com/Maro1306/sdram_ctr/blob/master/timing-write.png?raw=true">
@@ -54,3 +54,4 @@ AP付WRITEコマンドを使用しているためプリチャージは自動で�
 
 ![ref](https://github.com/Maro1306/sdram_ctr/blob/master/refresh.png?raw=true)
 
+#### リフレッシュ間隔
