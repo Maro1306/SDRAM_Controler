@@ -1,4 +1,4 @@
-declare SDRAM{
+declare SDRAM_CTR{
 	input	DRAM_DI[16];
 	output 	DRAM_DO[16];
 	output	DRAM_A[13];
@@ -19,6 +19,4 @@ declare SDRAM{
 	output	datao[16];
 	func_in	rd(banki, rowi, columni);
 	func_in wt(banki, rowi, columni, datai);
-	output	wtf;
-	output	done;
 }
