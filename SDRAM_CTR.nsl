@@ -1,4 +1,4 @@
-#include "SDRAM.inc"
+#include "SDRAM_CTR.inc"
 
 #define tRP 		8'd2	// PREからACT
 #define tRC 		8'd8	// REFからREF
@@ -22,15 +22,14 @@
 #define PRECHARGE	13'b0010000000000
 
 #define REF_CYC		9'd511	// リフレッシュサイクル
-#define OUT_CNT 	2'd2
 
 #define REF 		8'd0
 #define ENDREF		REF+tRC
 
-#define R_ACT		5'd0
-#define READ 		R_ACT+tRCD
-#define R_ENDPRE	READ+tRAS-1
-#define R_OUT		READ+tCAC
+#define R_ACT		8'd0
+#define R_EXE		R_ACT+tRCD
+#define R_ENDPRE	R_ACT+tRAS+tRP
+#define R_OUT		R_EXE+tCAC
 
 #define W_ACT		5'd0
 #define WRITE 		W_ACT+tRCD
@@ -41,11 +40,9 @@
 #define M_WRAP		1'b0		// ラップタイプ
 #define M_BURST		3'b000		// バースト長
 
-module SDRAM{
+module SDRAM_CTR{
 	reg cnt[8] = 0;
-	reg iref_cnt[3] = 1;
 	reg ref_cnt[9] = 0;
-	reg out_cnt[2] = 0;
 
 	reg rdqm = 1;
 	reg udqm = 1;
@@ -165,32 +162,23 @@ module SDRAM{
 	}
 
 	proc read{
+		if(cnt == R_ENDPRE-8'd2) cnt := 0;
+		else					 cnt++;
+
 		alt{
 			cnt == R_ACT:		cmd_act();
-			cnt < READ:			cmd_nop();
-			cnt == READ:		cmd_rda();
-			cnt <= R_ENDPRE:	cmd_nop();
+			cnt <  R_EXE:		cmd_nop();
+			cnt == R_EXE:		cmd_rda();
+			cnt <  R_OUT:		cmd_nop();
+			cnt == R_OUT:{
+				
+			}
+			cnt <  R_ENDPRE-8'd2:	cmd_nop();
+			cnt == R_ENDPRE-8'd2:{
+									cmd_nop();
+									idle();
+			}
 		}
-
-		if(cnt == R_OUT){
-			data := DRAM_DI;
-			datao = DRAM_DI;
-			done = 1;
-			out_cnt := OUT_CNT;
-		}
-
-		if(cnt == R_ENDPRE){
-			cnt := 0;
-			idle();
-		}
-		else cnt++;
-	}
-
-	// 呼び出し元がデータをラッチするまで出力
-	if(out_cnt != 0){
-		datao = data;
-		done = 1;
-		out_cnt--;
 	}
 
 	proc write{
@@ -271,20 +259,5 @@ module SDRAM{
 		DRAM_BA = bank;
 		DRAM_A  = 13'(column) | PRECHARGE;
 		DRAM_DO = data;
-	}
-
-	func rd{
-		rd_req := 1;
-		bank := banki;
-		row := rowi;
-		column := columni;
-	}
-
-	func wt{
-		wt_req := 1;
-		bank := banki;
-		row := rowi;
-		column := columni;
-		data := datai;
 	}
 }
