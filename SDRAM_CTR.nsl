@@ -31,9 +31,9 @@
 #define R_ENDPRE	R_ACT+tRAS+tRP
 #define R_OUT		R_EXE+tCAC
 
-#define W_ACT		5'd0
-#define WRITE 		W_ACT+tRCD
-#define W_ENDPRE	WRITE+tDAL-1
+#define W_ACT		8'd0
+#define W_EXE 		W_ACT+tRCD
+#define W_ENDPRE	W_EXE+tDAL
 
 #define M_OPTION	6'b000000	// オプション
 #define M_CASL		3'b010		// CASレーテンシ
@@ -48,14 +48,11 @@ module SDRAM_CTR{
 	reg udqm = 1;
 
 	reg ref_req = 0;	// リフレッシュリクエスト
-	reg rd_req = 0;		// READリクエスト
-	reg wt_req = 0;		// WRITEリクエスト
 
 	reg bank[2];
 	reg row[13];
 	reg column[10];
 	reg data[16];
-	reg wtflag = 0;
 
 	proc_name init();
 	proc_name idle();
@@ -75,7 +72,6 @@ module SDRAM_CTR{
 	DRAM_CKE = 1;		// 常にHIGH
 	DRAM_LDQM = rdqm;	// 初期化中のみHIGH
 	DRAM_UDQM = udqm;	// 初期化中のみHIGH
-	wtf = wtflag;		// 書込みフラグ
 
 	if(p_reset){
 		init();
@@ -126,15 +122,6 @@ module SDRAM_CTR{
 				refresh();
 				ref_req := 0;
 			}
-			rd_req|rd:{
-				read();
-				rd_req := 0;
-			}
-			wt_req|wt:{
-				write();
-				wt_req := 0;
-				wtflag := 1;
-			}
 		}
 	}
 
@@ -182,19 +169,19 @@ module SDRAM_CTR{
 	}
 
 	proc write{
+		if(cnt == W_ENDPRE-8'd2) cnt := 0;
+		else					 cnt++;
+
 		alt{
 			cnt == W_ACT:		cmd_act();
-			cnt < WRITE:		cmd_nop();
-			cnt == WRITE:		cmd_wta();
-			cnt <= W_ENDPRE:	cmd_nop();
+			cnt <  W_EXE:		cmd_nop();
+			cnt == W_EXE:		cmd_wta();
+			cnt <  W_ENDPRE-8'd2:	cmd_nop();
+			cnt == W_ENDPRE-8'd2:{
+									cmd_nop();
+									idle();
+			}
 		}
-
-		if(cnt == W_ENDPRE){
-			cnt := 0;
-			wtflag := 0;
-			idle();
-		}
-		else cnt++;
 	}
 
 	func cmd_nop{
