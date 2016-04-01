@@ -24,7 +24,7 @@
 #define REF_CYC		9'd511	// リフレッシュサイクル
 #define OUT_CNT 	2'd2
 
-#define REF 		5'd0
+#define REF 		8'd0
 #define ENDREF		REF+tRC
 
 #define R_ACT		5'd0
@@ -143,17 +143,18 @@ module SDRAM{
 
 	// REF_CYCクロック毎にオートリフレッシュ
 	proc refresh{
-		alt{
-			cnt == REF:		cmd_ref();
-			cnt <= ENDREF:	cmd_nop();
-		}
+		if(cnt == ENDREF-8'd2) cnt := 0;
+		else				   cnt++;
 
-		if(cnt == ENDREF){
-			cnt := 0;
-			ref_cnt := REF_CYC;
-			idle();
+		alt{
+			cnt == REF:			cmd_ref();
+			cnt <  ENDREF-8'd2:	cmd_nop();
+			cnt == ENDREF-8'd2:{
+								cmd_nop();
+								ref_cnt := REF_CYC;
+								idle();
+			}
 		}
-		else cnt++;
 	}
 
 	// リフレッシュカウンタ
