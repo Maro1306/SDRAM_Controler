@@ -37,7 +37,7 @@ CABLE		= "USB-Blaster"
 PMODE		= JTAG
 
 VERIOPT		= -LDFLAGS -lX11
-SRCS		= RAM.nsl BINARY.nsl
+SRCS		= SDRAM_CTR.nsl
 SYNTHSRCS	= $(PROJECT).nsl $(SRCS)
 VFILES 		= $(SYNTHSRCS:%.nsl=%.v) 
 LIBS		=
