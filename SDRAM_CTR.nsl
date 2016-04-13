@@ -41,40 +41,42 @@
 #define M_BURST		3'b000		// バースト長
 
 module SDRAM_CTR{
+	reg simflag = 1;
+
 	reg cnt[8] = 0;
 	reg ref_cnt[9] = 0;
 
-	reg rdqm = 1;
+	reg ldqm = 1;
 	reg udqm = 1;
 
 	reg ref_req = 0;	// リフレッシュリクエスト
 
-	reg bank[2];
-	reg row[13];
-	reg column[10];
-	reg data[16];
+//	reg bank[2];
+//	reg row[13];
+//	reg column[10];
+//	reg data[16];
 
 	proc_name init();
 	proc_name idle();
 	proc_name refresh();
-	proc_name read();
-	proc_name write();
+//	proc_name read();
+//	proc_name write();
 
 	func_self cmd_nop;	// 何もしない
 	func_self cmd_pall;	// 全バンクプリチャージ
 	func_self cmd_ref;	// オートリフレッシュ
 	func_self cmd_mrs;	// モードレジスタ設定
-	func_self cmd_act;	// バンクとROWをアクティブ
-	func_self cmd_rda;	// AP付READ
-	func_self cmd_wta;	// AP付WRITE
+//	func_self cmd_act;	// バンクとROWをアクティブ
+//	func_self cmd_rda;	// AP付READ
+//	func_self cmd_wta;	// AP付WRITE
 
 	DRAM_CLK = m_clock;	// 133MHz
 	DRAM_CKE = 1;		// 常にHIGH
-	DRAM_LDQM = rdqm;	// 初期化中のみHIGH
-	DRAM_UDQM = udqm;	// 初期化中のみHIGH
+	.{DRAM_UDQM, DRAM_LDQM} = {udqm, ldqm};
 
-	if(p_reset){
+	if(simflag){
 		init();
+		simflag := 0;
 	}
 
 	// SDRAM初期化
@@ -106,8 +108,9 @@ module SDRAM_CTR{
 
 			cnt == INIT_MRS :{
 				cmd_mrs();
-				rdqm := 0;
+				ldqm := 0;
 				udqm := 0;
+				ref_cnt := REF_CYC;
 				idle();
 			}
 		}
@@ -148,6 +151,7 @@ module SDRAM_CTR{
 		ref_cnt--;
 	}
 
+/*
 	proc read{
 		if(cnt == R_ENDPRE-8'd2) cnt := 0;
 		else					 cnt++;
@@ -183,6 +187,7 @@ module SDRAM_CTR{
 			}
 		}
 	}
+*/
 
 	func cmd_nop{
 		DRAM_CS  = 0;
@@ -217,6 +222,7 @@ module SDRAM_CTR{
 		DRAM_A  = {M_OPTION, M_CASL, M_WRAP, M_BURST};
 	}
 
+/*
 	func cmd_act{
 		DRAM_CS  = 0;
 		DRAM_RAS = 0;
@@ -247,4 +253,5 @@ module SDRAM_CTR{
 		DRAM_A  = 13'(column) | PRECHARGE;
 		DRAM_DO = data;
 	}
+*/
 }
