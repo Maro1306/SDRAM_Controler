@@ -1,10 +1,6 @@
-#include "SDRAM.inc"
-#include "sdr.inc"
-
-#define DEBUG
+#include "SDRAM_CTR.inc"
 
 declare DE0_CV{
-#ifndef DEBUG
 	inout	DRAM_D[16];
 	output	DRAM_A[13];
 	output	DRAM_BA[2];
@@ -16,14 +12,11 @@ declare DE0_CV{
 	output 	DRAM_CLK;
 	output 	DRAM_WE;
 	output 	DRAM_CS;
-#endif
 }
 
 module DE0_CV{
-	SDRAM sdram;
-	sdr sdrsim;
+	SDRAM_CTR sdram;
 
-#ifndef DEBUG
 	if(sdram.wtf) DRAM_D = sdram.DRAM_DO;
 	else{
 		DRAM_D = 16'hZZZZ;
@@ -40,26 +33,4 @@ module DE0_CV{
 	DRAM_CLK = sdram.DRAM_CLK;
 	DRAM_WE = sdram.DRAM_WE;
 	DRAM_CS = sdram.DRAM_CS;
-#endif
-
-#ifdef DEBUG
-	if(sdram.wtf) sdrsim.Dq = sdram.DRAM_DO;
-	else{
-		sdrsim.Dq = 16'hZZZZ;
-		sdram.DRAM_DI = sdrsim.Dq;
-	}
-
-	sdrsim.m_clock = sdram.DRAM_CLK;
-	sdrsim.p_reset = p_reset;
-
-	sdrsim.Addr = sdram.DRAM_A;
-	sdrsim.Ba = sdram.DRAM_BA;
-	sdrsim.Dqm = {sdram.DRAM_UDQM, sdram.DRAM_LDQM};
-	sdrsim.Ras_n = sdram.DRAM_RAS;
-	sdrsim.Cas_n = sdram.DRAM_CAS;
-	sdrsim.Cke = sdram.DRAM_CKE;
-	sdrsim.Clk = sdram.DRAM_CLK;
-	sdrsim.We_n = sdram.DRAM_WE;
-	sdrsim.Cs_n = sdram.DRAM_CS;
-#endif
 }
