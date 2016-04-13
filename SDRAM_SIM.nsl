@@ -1,0 +1,24 @@
+#include "SDRAM_CTR.inc"
+#include "sdr.inc"
+
+declare SDRAM_SIM simulation{}
+
+module SDRAM_SIM{
+	sdr sdrmodel;
+	SDRAM_CTR sdrctr;
+
+	reg cnt[10] = 0;
+
+	sdrmodel.Clk   = sdrctr.DRAM_CLK;
+	sdrmodel.Cke   = sdrctr.DRAM_CKE;
+	sdrmodel.Addr  = sdrctr.DRAM_A;
+	sdrmodel.Ba    = sdrctr.DRAM_BA;
+	sdrmodel.Dqm   = {sdrctr.DRAM_UDQM, sdrctr.DRAM_LDQM};
+	sdrmodel.Cs_n  = sdrctr.DRAM_CS;
+	sdrmodel.Ras_n = sdrctr.DRAM_RAS;
+	sdrmodel.Cas_n = sdrctr.DRAM_CAS;
+	sdrmodel.We_n  = sdrctr.DRAM_WE;
+
+	if(cnt == 10'd1000) _finish();
+	else			   cnt++;
+}
