@@ -41,7 +41,6 @@
 
 `timescale 1ns / 1ps
 
-
 module sdr (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
 
 `include "sdr_parameters.vh"
@@ -1039,7 +1038,7 @@ module sdr (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
         end
     endtask
 
-    // Timing Parameters for -75 (133 MHz @ CL3)
+    // Timing Parameters for -75 (133 MHz @ CL2)
     specify
         specparam
             tAH  =  0.8,                                        // Addr, Ba Hold Time
