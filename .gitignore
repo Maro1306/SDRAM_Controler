@@ -1,3 +1,5 @@
 warning.txt
 *.vcd
 *.vvp
+SDRAM_CTR.v
+SDRAM_SIM.v
