@@ -1,0 +1,32 @@
+#include "ASYNCTX.inc"
+
+module ASYNCTX{
+	reg cur_out = 0;
+	reg sync1, sync2, sync3;
+
+	proc_name ack_await;
+
+	// メタステーブル対策
+	sync1 := aTxIn;
+	sync2 := sync1;
+	sync3 := sync2;
+
+	aTxOut = cur_out;
+
+	if(sync2 & ~sync3){
+		aTxAck();
+		cur_out := 0;
+	}
+
+	func aTxReq any{
+		~sync3:	cur_out := 1;
+		else:	ack_await();
+	}
+
+	proc ack_await{
+		if(~sync3){
+			cur_out := 1;
+			finish;
+		}
+	}
+}

@@ -1,0 +1,20 @@
+#include "ASYNCRX.inc"
+
+module ASYNCRX{
+	reg cur_out = 0;
+	reg sync1, sync2, sync3;
+
+	// メタステーブル対策
+	sync1 := aTxIn;
+	sync2 := sync1;
+	sync3 := sync2;
+
+	aRxOut = cur_out;
+
+	if(sync2 & ~sync3) aRxReq();
+	if(~sync2 & sync3) cur_out := 0'b0;
+
+	func aRxAck{
+		cur_out := 0'b1;
+	}
+}
