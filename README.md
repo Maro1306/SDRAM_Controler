@@ -55,3 +55,4 @@ AP付WRITEコマンドを使用しているためプリチャージは自動で�
 ![ref](https://github.com/Maro1306/sdram_ctr/blob/master/refresh.png?raw=true)
 
 #### リフレッシュ間隔
+
