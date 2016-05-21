@@ -1,6 +1,5 @@
 #include "SDRAM_CTR.inc"
-#include "ASYNCTX.inc"
-#include "ASYNCTX.inc"
+#include "ASYNCRX.inc"
 
 #define READ		1'b1
 #define WRITE		1'b0
@@ -46,25 +45,21 @@
 #define M_BURST		3'b000		// バースト長
 
 module SDRAM_CTR{
-	ASYNCTX tx;
 	ASYNCRX rx;
 
 	reg init_flag = 1;
+	reg init_end = 0;
 
 	reg cnt[8] = 0;
 	reg ref_cnt[9] = 0;
 
+	reg data[16];
 	reg ldqm = 1;
 	reg udqm = 1;
 
 	reg ref_req = 0;	// リフレッシュリクエスト
 	reg write_req = 0;	// 書込みリクエスト
 	reg read_req = 0;	// 読込みリクエスト
-
-	reg bank1[2], bank2[2], bank[2];
-	reg row1[13], row2[13], row[13];
-	reg column1[10], column2[10], column[10];
-	reg data1[16], data2[16], data[16];
 
 	proc_name init();
 	proc_name idle();
@@ -86,30 +81,13 @@ module SDRAM_CTR{
 	DRAM_LDQM = ldqm;		// 初期化中のみHIGH
 
 	// モジュール間IF
-	tx.aTxIn = txin;
-	txout = tx.aTxOut;
 	rx.aRxIn = rxin;
 	rxout = rx.aRxOut;
 
-	// メタステーブル対策
-	bank1 := banki;     bank2 := bank1;
-	row1 := rowi;       row2 := row1;
-	column1 := columni; column2 := column1;
-	data1 := datai;     data2 := data1;
-
 	// データ受信要求
-	func rx.aRxReq{
-		bank := bank2;
-		row := row2;
-		column := column2;
-
-		if(rw_mode == READ){ 
-			read_req := 1;
-		}
-		else{
-			data := data2;
-			write_req := 1;
-		}
+	func rx.aRxReq any{
+		rw_mode == READ:  read_req  := 1;	
+		rw_mode == WRITE: write_req := 1;
 	}
 
 	if(init_flag){
@@ -118,6 +96,7 @@ module SDRAM_CTR{
 	}
 
 	// SDRAM初期化
+	finish_init = init_end;
 	proc init{
 		if(cnt == INIT_MRS) cnt := 0;
 		else				cnt++;
@@ -149,6 +128,7 @@ module SDRAM_CTR{
 				ldqm := 0;
 				udqm := 0;
 				ref_cnt := REF_CYC;
+				init_end := 1;
 				idle();
 			}
 		}
@@ -197,6 +177,7 @@ module SDRAM_CTR{
 		ref_cnt--;
 	}
 
+	datao = data;
 	proc read{
 		if(cnt == R_ENDPRE-8'd2) cnt := 0;
 		else					 cnt++;
@@ -207,7 +188,8 @@ module SDRAM_CTR{
 			cnt == R_EXE:		cmd_rda();
 			cnt <  R_OUT:		cmd_nop();
 			cnt == R_OUT:{
-				
+								data := DRAM_DI;
+								rx.aRxAck();
 			}
 			cnt <  R_ENDPRE-8'd2:	cmd_nop();
 			cnt == R_ENDPRE-8'd2:{
@@ -297,6 +279,6 @@ module SDRAM_CTR{
 
 		DRAM_BA = bank;
 		DRAM_A  = 13'(column) | PRECHARGE;
-		DRAM_DO = data;
+		DRAM_DO = datai;
 	}
 }
