@@ -5,16 +5,16 @@ module ASYNCRX{
 	reg sync1, sync2, sync3;
 
 	// メタステーブル対策
-	sync1 := aTxIn;
+	sync1 := aRxIn;
 	sync2 := sync1;
 	sync3 := sync2;
 
 	aRxOut = cur_out;
 
 	if(sync2 & ~sync3) aRxReq();
-	if(~sync2 & sync3) cur_out := 0'b0;
+	if(~sync2 & sync3) cur_out := 1'b0;
 
 	func aRxAck{
-		cur_out := 0'b1;
+		cur_out := 1'b1;
 	}
 }
