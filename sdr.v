@@ -181,6 +181,8 @@ module sdr (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
     end
 
     always @ (posedge Sys_clk) begin
+        $display ("%h %t", Dq_dqm, $time);
+
         // Internal Commamd Pipelined
         Command[0] = Command[1];
         Command[1] = Command[2];
@@ -902,22 +904,12 @@ module sdr (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
             endcase
 
             // Dqm operation
-`ifdef x4
-            if (Dqm[0] == 1'b0) begin
-                Dq_dqm [ 3 : 0] = Dq [ 3 : 0];
-            end
-`elsif x8
-            if (Dqm[0] == 1'b0) begin
-                Dq_dqm [ 7 : 0] = Dq [ 7 : 0];
-            end
-`elsif x16
             if (Dqm[0] == 1'b0) begin
                 Dq_dqm [ 7 : 0] = Dq [ 7 : 0];
             end
             if (Dqm[1] == 1'b0) begin
                 Dq_dqm [15 : 8] = Dq [15 : 8];
             end
-`endif
 
             // Write to memory
             case (Bank)
