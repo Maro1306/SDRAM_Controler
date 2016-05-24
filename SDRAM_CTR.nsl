@@ -188,6 +188,7 @@ module SDRAM_CTR{
 			cnt == R_EXE:		cmd_rda();
 			cnt <  R_OUT:		cmd_nop();
 			cnt == R_OUT:{
+								cmd_nop();
 								data := DRAM_DI;
 								rx.aRxAck();
 			}
