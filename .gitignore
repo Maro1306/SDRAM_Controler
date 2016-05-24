@@ -3,3 +3,6 @@ warning.txt
 *.vvp
 SDRAM_CTR.v
 SDRAM_SIM.v
+ASYNCRX.v
+ASYNCTX.v
+*.swp
