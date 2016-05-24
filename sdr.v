@@ -181,8 +181,6 @@ module sdr (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
     end
 
     always @ (posedge Sys_clk) begin
-        $display ("%h %t", Dq_dqm, $time);
-
         // Internal Commamd Pipelined
         Command[0] = Command[1];
         Command[1] = Command[2];
