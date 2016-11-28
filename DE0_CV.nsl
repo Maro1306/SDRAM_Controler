@@ -1,36 +1,109 @@
 #include "SDRAM_CTR.inc"
+#include "ASYNCTX.inc"
+#include "pll.inc"
+
+#define READ	1'b1
+#define WRITE	1'b0
 
 declare DE0_CV{
-	inout	DRAM_D[16];
-	output	DRAM_A[13];
+	inout	DRAM_DQ[16];
+	output	DRAM_ADDR[13];
 	output	DRAM_BA[2];
 	output 	DRAM_LDQM;
 	output 	DRAM_UDQM;
-	output 	DRAM_RAS;
-	output 	DRAM_CAS;
+	output 	DRAM_RAS_N;
+	output 	DRAM_CAS_N;
 	output 	DRAM_CKE;
 	output 	DRAM_CLK;
-	output 	DRAM_WE;
-	output 	DRAM_CS;
+	output 	DRAM_WE_N;
+	output 	DRAM_CS_N;
+
+	output	LEDR[10];
 }
 
 module DE0_CV{
+	pll pll_i;
 	SDRAM_CTR sdram;
+	ASYNCTX tx;
 
-	if(sdram.wtf) DRAM_D = sdram.DRAM_DO;
-	else{
-		DRAM_D = 16'hZZZZ;
-		sdram.DRAM_DI = DRAM_D;
+	reg req_flag = 1;
+	reg write_flag = 0;
+	reg cnt[10] = 0;
+	reg bank[2], row[13], column[10], data[16];
+	reg datao[16];
+
+	proc_name sdram_write(bank, row, column, data);
+	proc_name sdram_read(bank, row, column);
+
+	// SDRAM用クロック
+	pll_i.rst     = ~p_reset;
+	pll_i.refclk  = m_clock;
+	sdram.m_clock = pll_i.outclk_0;
+	DRAM_CLK      = pll_i.outclk_1;
+
+	// モジュール間IF
+	tx.aTxIn = sdram.rxout;
+	sdram.rxin = tx.aTxOut;
+
+	LEDR = datao[9:0] | 10'(sdram.finish_init);
+
+	if(write_flag) DRAM_DQ = sdram.DRAM_DO;
+	else           sdram.DRAM_DI = DRAM_DQ;
+
+	DRAM_ADDR  = sdram.DRAM_A;
+	DRAM_BA    = sdram.DRAM_BA;
+	DRAM_LDQM  = sdram.DRAM_LDQM;
+	DRAM_UDQM  = sdram.DRAM_UDQM;
+	DRAM_RAS_N = sdram.DRAM_RAS;
+	DRAM_CAS_N = sdram.DRAM_CAS;
+	DRAM_CKE   = sdram.DRAM_CKE;
+	DRAM_WE_N  = sdram.DRAM_WE;
+	DRAM_CS_N  = sdram.DRAM_CS;
+
+	if(sdram.finish_init && (cnt < 10'd51)) cnt++;
+
+	any{
+		cnt == 10'd10: sdram_write(2'd0, 13'd100, 10'd10, 16'd1000);
+		cnt == 10'd50: sdram_read(2'd0, 13'd100, 10'd10);
 	}
 
-	DRAM_A = sdram.DRAM_A;
-	DRAM_BA = sdram.DRAM_BA;
-	DRAM_LDQM = sdram.DRAM_LDQM;
-	DRAM_UDQM = sdram.DRAM_UDQM;
-	DRAM_RAS = sdram.DRAM_RAS;
-	DRAM_CAS = sdram.DRAM_CAS;
-	DRAM_CKE = sdram.DRAM_CKE;
-	DRAM_CLK = sdram.DRAM_CLK;
-	DRAM_WE = sdram.DRAM_WE;
-	DRAM_CS = sdram.DRAM_CS;
+	proc sdram_write{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 書込み完了まで送信し続ける
+		write_flag    := 1;
+		sdram.rw_mode = WRITE;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+		sdram.datai   = data;
+	}
+
+	proc sdram_read{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 読込み完了まで送信し続ける
+		sdram.rw_mode = READ;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+	}
+
+	func tx.aTxAck seq{
+		{
+			sdram_write.finish();
+			sdram_read.finish();
+		}
+		{
+			req_flag := 1;
+			write_flag := 0;
+			datao := sdram.datao;
+		}
+	}
 }
