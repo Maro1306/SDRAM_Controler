@@ -47,7 +47,6 @@
 module SDRAM_CTR{
 	ASYNCRX rx;
 
-	reg init_flag = 1;
 	reg init_end = 0;
 
 	reg cnt[8] = 0;
@@ -60,6 +59,8 @@ module SDRAM_CTR{
 	reg ref_req = 0;	// リフレッシュリクエスト
 	reg write_req = 0;	// 書込みリクエスト
 	reg read_req = 0;	// 読込みリクエスト
+
+	reg init_flag = 1;
 
 	proc_name init();
 	proc_name idle();
@@ -75,7 +76,6 @@ module SDRAM_CTR{
 	func_self cmd_rda;	// AP付READ
 	func_self cmd_wta;	// AP付WRITE
 
-	DRAM_CLK  = m_clock;	// 133MHz
 	DRAM_CKE  = 1;			// 常にHIGH
 	DRAM_UDQM = udqm;		// 初期化中のみHIGH
 	DRAM_LDQM = ldqm;		// 初期化中のみHIGH
